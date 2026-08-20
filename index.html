@@ -1,1 +1,723 @@
-PLACEHOLDER_WILL_FAIL
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта Звёздного Лорда</title>
+    <!-- Yandex Maps loaded dynamically -->
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-panel: #f8f9fa;
+            --bg-header: #ffffff;
+            --bg-card: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #5a5a6e;
+            --text-muted: #8a8a9e;
+            --border: #e2e5eb;
+            --accent: #3498db;
+            --accent-hover: #2980b9;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f1117;
+            --bg-panel: #161b22;
+            --bg-header: #161b22;
+            --bg-card: #1c2128;
+            --text: #e6edf3;
+            --text-secondary: #adbac7;
+            --text-muted: #768390;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --danger: #f85149;
+            --success: #3fb950;
+            --shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            transition: background 0.25s, color 0.25s;
+        }
+
+        .screen { display: none; height: 100vh; }
+        .screen.active { display: flex; flex-direction: column; }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 16px;
+        }
+        .app-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .btn:hover { background: var(--bg-panel); }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-danger { color: var(--danger); }
+        .btn-danger:hover { background: rgba(231,76,60,0.1); }
+        .btn-success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-icon { padding: 8px; min-width: 36px; justify-content: center; }
+
+        #projectsScreen { background: var(--bg); }
+        .projects-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 24px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .projects-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .projects-subtitle { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+        }
+        .project-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+        .project-card h3 { font-size: 16px; margin-bottom: 6px; }
+        .project-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+        .project-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+        .create-project-card {
+            border-style: dashed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            color: var(--text-muted);
+            gap: 8px;
+        }
+        .create-project-card:hover { color: var(--accent); border-color: var(--accent); }
+        .create-project-card span { font-size: 32px; }
+
+        #projectScreen { flex-direction: row; }
+        .sidebar {
+            width: 360px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .search-box { position: relative; margin-bottom: 12px; }
+        .search-box input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+        }
+        .search-box input:focus { border-color: var(--accent); }
+        .search-box .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+        .search-results.visible { display: block; }
+        .search-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: var(--bg-panel); }
+        .search-result-item .result-name { font-weight: 600; }
+        .search-result-item .result-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .folder-item, .point-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 2px;
+        }
+        .folder-item:hover, .point-item:hover { background: var(--bg-card); }
+        .folder-item.active, .point-item.active {
+            background: var(--bg-card);
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+        .folder-icon, .point-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .folder-icon { background: #9b59b6; border-radius: 3px; }
+        .point-item .point-info { flex: 1; min-width: 0; }
+        .point-item .point-name {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .point-item .point-cat { font-size: 11px; color: var(--text-muted); }
+        .point-actions { display: none; gap: 4px; }
+        .point-item:hover .point-actions { display: flex; }
+
+        .map-area {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        #map { flex: 1; width: 100%; }
+        .map-toolbar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 500;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .map-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow);
+            z-index: 500;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .map-hint.visible { opacity: 1; }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            z-index: 500;
+            box-shadow: var(--shadow);
+        }
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal.wide { max-width: 780px; }
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .modal-header h3 { font-size: 16px; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .coords-display {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .category-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cat-pill {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .cat-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .cat-pill.selected {
+            border-color: var(--accent);
+            background: rgba(52,152,219,0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; line-height: 1.5; }
+
+        .theme-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            font-size: 14px;
+            z-index: 3000;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        .toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .cs-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 480px;
+        }
+        @media (max-width: 700px) {
+            .cs-layout { grid-template-columns: 1fr; }
+        }
+        .cs-preview-wrap {
+            background: #0e1621;
+            border-radius: 12px;
+            padding: 16px;
+            overflow-y: auto;
+            max-height: 560px;
+        }
+        .cs-preview-title {
+            font-size: 11px;
+            color: #6b7b8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .tg-bubble {
+            background: #182533;
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #e4eaf0;
+            font-size: 14px;
+            line-height: 1.45;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .tg-bubble a { color: #6ab3f3; text-decoration: none; }
+        .tg-bubble .tg-link { color: #6ab3f3; }
+
+        .cs-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="projectsScreen" class="screen active">
+        <div class="app-header">
+            <h1>🌌 Карта Звёздного Лорда</h1>
+            <div class="header-actions">
+                <button class="theme-btn" id="themeToggle" title="Сменить тему">🌓</button>
+                <button class="btn" id="importBtn">📥 Импорт</button>
+                <input type="file" id="importFile" accept=".json" style="display:none">
+            </div>
+        </div>
+        <div class="projects-container">
+            <div class="projects-title">Проекты</div>
+            <div class="projects-subtitle">Создавайте проекты и собирайте точки локаций</div>
+            <div class="projects-grid" id="projectsGrid"></div>
+        </div>
+    </div>
+
+    <div id="projectScreen" class="screen">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="btn btn-icon btn-sm" id="backBtn" title="К проектам">←</button>
+                <h2 id="projectTitle">Проект</h2>
+                <button class="btn btn-sm" id="exportBtn" title="Экспорт JSON">📤</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Поиск адреса, места или координат...">
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+
+                <button class="btn btn-primary" id="addPointClickBtn" style="width:100%; margin-bottom:8px;">
+                    ➕ Добавить точку кликом по карте
+                </button>
+
+                <button class="btn btn-success" id="callsheetBtn" style="width:100%; margin-bottom:12px;">
+                    📋 Call-sheet → Telegram
+                </button>
+
+                <div class="section-title">
+                    <span>Папки</span>
+                    <button class="btn btn-sm" id="addFolderBtn">+</button>
+                </div>
+                <div id="foldersList"></div>
+
+                <div class="section-title">
+                    <span>Все точки <span id="pointsCount">(0)</span></span>
+                </div>
+                <div id="pointsList"></div>
+            </div>
+        </div>
+
+        <div class="map-area">
+            <div id="map"></div>
+            <div class="map-toolbar">
+                <button class="btn btn-sm" id="fitBoundsBtn">⤢ Показать все</button>
+            </div>
+            <div class="map-hint" id="mapHint">Кликните по карте, чтобы поставить точку</div>
+            <div class="legend" id="legend"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pointModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="pointModalTitle">Новая точка</h3>
+                <button class="btn btn-icon btn-sm" id="closePointModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="pointName" placeholder="Например: Шлагбаум / Въезд">
+                </div>
+                <div class="form-group">
+                    <label>Категория</label>
+                    <div class="category-pills" id="categoryPills"></div>
+                </div>
+                <div class="form-group">
+                    <label>Описание / заметка</label>
+                    <textarea id="pointDesc" placeholder="Любая полезная информация..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Папка</label>
+                    <select id="pointFolder">
+                        <option value="">— Без папки —</option>
+                    </select>
+                </div>
+                <div class="coords-display" id="pointCoords"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancelPointBtn">Отмена</button>
+                <button class="btn btn-primary" id="savePointBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Новый проект</h3>
+                <button class="btn btn-icon btn-sm" id="closeProjectModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название проекта</label>
+                    <input type="text" id="newProjectName" placeholder="Например: Вегетация">
+                </div>
+                <div class="form-group">
+                    <label>Описание (необязательно)</label>
+                    <input type="text" id="newProjectDesc" placeholder="Краткое описание">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancelProjectBtn">Отмена</button>
+                <button class="btn btn-primary" id="saveProjectBtn">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="folderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Новая папка</h3>
+                <button class="btn btn-icon btn-sm" id="closeFolderModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название папки</label>
+                    <input type="text" id="newFolderName" placeholder="Например: 16 августа — Парковки">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancelFolderBtn">Отмена</button>
+                <button class="btn btn-primary" id="saveFolderBtn">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="callsheetModal">
+        <div class="modal wide">
+            <div class="modal-header">
+                <h3>📋 Call-sheet → Telegram</h3>
+                <button class="btn btn-icon btn-sm" id="closeCallsheetModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="cs-layout">
+                    <div class="cs-form">
+                        <div class="form-group">
+                            <label>Дата / заголовок</label>
+                            <input type="text" id="csDate" placeholder="16 АВГУСТА">
+                        </div>
+                        <div class="form-group">
+                            <label>Сбор на групповой автобус (текст)</label>
+                            <textarea id="csBus" rows="5"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Водитель и транспорт</label>
+                            <textarea id="csDriver" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Общая ссылка «Сохранить все точки» (Яндекс)</label>
+                            <input type="text" id="csAllPointsLink" placeholder="https://yandex.ru/maps/-/...">
+                        </div>
+                        <div class="form-group">
+                            <label>Дополнительный текст в конце</label>
+                            <textarea id="csExtra" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Какие точки включать</label>
+                            <select id="csPointsSource">
+                                <option value="folder">Только из текущей папки</option>
+                                <option value="all">Все точки проекта</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="cs-preview-title">Превью сообщения в Telegram</div>
+                        <div class="cs-preview-wrap">
+                            <div class="tg-bubble" id="csPreview"></div>
+                        </div>
+                        <div class="cs-actions">
+                            <button class="btn btn-primary" id="csCopyBtn">📋 Скопировать текст</button>
+                            <button class="btn" id="csRefreshBtn">🔄 Обновить превью</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // Full application code is in the local artifacts file.
+    // Due to size limits of the GitHub API tool in this session,
+    // please download the complete version from the project artifacts
+    // or re-upload the local lokkarta-mvp.html as index.html.
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('projectsGrid').innerHTML = '<div class="project-card create-project-card" id="createProjectCard"><span>＋</span><div>Создать проект</div></div><p style="grid-column:1/-1;color:var(--text-muted);font-size:14px;margin-top:20px;">Полный код приложения находится в локальном файле. Загрузите <code>lokkarta-mvp.html</code> как <code>index.html</code> через Upload files на GitHub для полной версии.</p>';
+        document.getElementById('createProjectCard').onclick = function(){ alert('Загрузите полную версию файла lokkarta-mvp.html в репозиторий как index.html'); };
+    });
+    </script>
+</body>
+</html>
